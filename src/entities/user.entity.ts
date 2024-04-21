@@ -1,8 +1,9 @@
 import {AbstractEntity} from "./abstract-entity";
-import {BeforeInsert, Column, Entity} from "typeorm";
+import {BeforeInsert, Column, Entity, JoinTable, ManyToMany} from "typeorm";
 import * as bcrypt from 'bcryptjs'
-import { Exclude, instanceToPlain} from "class-transformer";
+import {Exclude, instanceToPlain} from "class-transformer";
 import {IsEmail} from "class-validator";
+import {User} from "../auth/user.decorator";
 
 @Entity('users')
 export class UserEntity extends AbstractEntity {
@@ -28,6 +29,19 @@ export class UserEntity extends AbstractEntity {
     })
     image: string | null
 
+    @ManyToMany(
+        type => UserEntity,
+        user => user.folowing
+    )
+    @JoinTable()
+    followers: UserEntity[]
+
+    @ManyToMany(
+        type => UserEntity,
+        user => user.followers
+    )
+    folowing: UserEntity[]
+
     @Column()
     @Exclude()
     password: string
@@ -43,5 +57,12 @@ export class UserEntity extends AbstractEntity {
 
     toJSON() {
         return instanceToPlain(this)
+    }
+
+    toProfile(user: UserEntity) {
+        const following = this.followers.includes(user)
+        const profile: any = this.toJSON()
+        delete profile.followers
+        return {...profile, following}
     }
 }
